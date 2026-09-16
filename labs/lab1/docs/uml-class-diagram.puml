@@ -1,0 +1,143 @@
+@startuml uml-class-diagram
+' Лабораторная работа №1, вариант 15 — «Генератор паролей»
+' Диаграмма классов: каркас MVC с АКТИВНОЙ моделью
+' Просмотр: расширение PlantUML для VS Code / IntelliJ IDEA / Eclipse
+
+title Диаграмма классов — MVC с активной моделью
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+package "Model" #E8F4FF {
+
+  interface IModelObserver {
+    + {abstract} onSettingsChanged(settings : PasswordSettings) : void
+    + {abstract} onPasswordsChanged(passwords : QStringList) : void
+    + {abstract} onInputRejected(message : QString) : void
+  }
+
+  class PasswordModel {
+    - m_observers : vector<IModelObserver*>
+    - m_lastInput : RawPasswordInput
+    - m_settings : PasswordSettings
+    - m_passwords : QStringList
+    - m_hasResult : bool
+    --
+    + attach(observer : IModelObserver*) : void
+    + detach(observer : IModelObserver*) : void
+    + submit(input : RawPasswordInput) : void
+    + lastInput() : RawPasswordInput
+    + settings() : PasswordSettings
+    + passwords() : QStringList
+    + hasResult() : bool
+    --
+    - validate(in, out settings, out error) : bool
+    - notifySettingsChanged() : void
+    - notifyPasswordsChanged() : void
+    - notifyInputRejected(message) : void
+  }
+
+  class PasswordGenerator <<utility>> {
+    + {static} Lowercase : QString
+    + {static} Uppercase : QString
+    + {static} Digits : QString
+    + {static} Special : QString
+    --
+    + {static} generate(settings : PasswordSettings) : QStringList
+    - {static} generateOne(settings) : QString
+    - {static} combinedAlphabet(settings) : QString
+    - {static} enabledAlphabets(settings) : QStringList
+    - {static} randomChar(alphabet) : QChar
+  }
+
+  class PasswordSettings <<struct>> {
+    + length : int
+    + count : int
+    + useLowercase : bool
+    + useUppercase : bool
+    + useDigits : bool
+    + useSpecial : bool
+    --
+    + enabledSetCount() : int
+    + enabledSetNames() : QStringList
+  }
+
+  class RawPasswordInput <<struct>> {
+    + lengthText : QString
+    + countText : QString
+    + useLowercase : bool
+    + useUppercase : bool
+    + useDigits : bool
+    + useSpecial : bool
+  }
+}
+
+package "View" #EAFBEA {
+
+  class MainWindow {
+    - ui : Ui::MainWindow*
+    - m_model : PasswordModel&
+    - m_controller : PasswordController&
+    --
+    + MainWindow(model, controller, parent)
+    + onSettingsChanged(settings) : void
+    + onPasswordsChanged(passwords) : void
+    + onInputRejected(message) : void
+    - showInitialState() : void
+  }
+
+  class InputDialog {
+    - ui : Ui::InputDialog*
+    --
+    + InputDialog(initial : RawPasswordInput, parent)
+    + rawInput() : RawPasswordInput
+    - applyInitialValues(initial) : void
+  }
+}
+
+package "Controller" #FFF4E0 {
+
+  class PasswordController {
+    - m_model : PasswordModel&
+    - m_view : QWidget*
+    --
+    + PasswordController(model, parent)
+    + setView(view : QWidget*) : void
+    + requestInput() : void  <<slot>>
+  }
+}
+
+' ------------------- связи -------------------
+
+MainWindow ..|> IModelObserver : реализует
+
+PasswordModel o--> "0..*" IModelObserver : m_observers\n(подписка attach/detach)
+PasswordModel ..> PasswordGenerator : использует
+PasswordModel *--> PasswordSettings
+PasswordModel *--> RawPasswordInput
+PasswordGenerator ..> PasswordSettings : читает
+
+MainWindow --> PasswordController : нажатие кнопки\n«Ввести данные»
+MainWindow --> PasswordModel : attach() / чтение\nначального состояния
+
+PasswordController --> PasswordModel : submit(rawInput)
+PasswordController ..> InputDialog : создаёт\nмодальный диалог
+InputDialog ..> RawPasswordInput : возвращает
+
+note right of PasswordModel
+  **Активная модель**
+  Модель сама рассылает уведомления
+  подписанным представлениям через
+  IModelObserver. Контроллер в
+  обновлении экрана не участвует.
+end note
+
+note bottom of PasswordController
+  Контроллер только принимает действие
+  пользователя и передаёт «сырые» данные
+  модели. Он не проверяет данные и не
+  обновляет представление.
+end note
+
+@enduml

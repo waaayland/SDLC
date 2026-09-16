@@ -1,0 +1,95 @@
+@startuml uml-sequence-diagram
+' Лабораторная работа №1, вариант 15 — «Генератор паролей»
+' Диаграмма последовательности: обработка нажатия «Ввести данные»
+
+title Диаграмма последовательности — ввод данных и генерация паролей
+
+skinparam shadowing false
+skinparam sequenceMessageAlign left
+
+actor Пользователь as User
+participant "MainWindow\n<<View>>" as MW
+participant "PasswordController\n<<Controller>>" as C
+participant "InputDialog\n<<View>>" as D
+participant "PasswordModel\n<<Model, активная>>" as M
+participant "PasswordGenerator" as G
+
+== Успешный сценарий ==
+
+User -> MW : нажатие «Ввести данные»
+activate MW
+MW -> C : requestInput()
+deactivate MW
+activate C
+
+C -> M : lastInput()
+activate M
+M --> C : RawPasswordInput\n(последние введённые данные)
+deactivate M
+
+C -> D : new InputDialog(lastInput, mainWindow)
+activate D
+note right of D
+  Поля заполняются последними
+  введёнными данными —
+  «восстановление при повторном вводе»
+end note
+D --> User : модальное окно ввода
+User -> D : длина, количество,\nнаборы символов; OK
+D --> C : rawInput()
+destroy D
+
+C -> M : submit(rawInput)
+deactivate C
+activate M
+
+M -> M : m_lastInput = rawInput\n(запомнить ввод)
+M -> M : validate(...)  →  true
+M -> G : generate(settings)
+activate G
+G --> M : QStringList паролей
+deactivate G
+M -> M : сохранить settings и passwords
+
+note left of M
+  **Активная модель:**
+  дальше модель сама оповещает
+  представления, минуя контроллер
+end note
+
+M -> MW : onSettingsChanged(settings)
+activate MW
+MW -> MW : обновить метки параметров
+deactivate MW
+
+M -> MW : onPasswordsChanged(passwords)
+activate MW
+MW -> MW : заполнить список паролей
+MW --> User : результат на главной форме
+deactivate MW
+deactivate M
+
+== Сценарий с некорректными данными ==
+
+User -> MW : нажатие «Ввести данные»
+activate MW
+MW -> C : requestInput()
+deactivate MW
+activate C
+C -> D : new InputDialog(lastInput, mainWindow)
+activate D
+User -> D : длина = "abc"; OK
+D --> C : rawInput()
+destroy D
+C -> M : submit(rawInput)
+deactivate C
+activate M
+M -> M : m_lastInput = rawInput\n(запоминается и некорректный ввод)
+M -> M : validate(...)  →  false
+M -> MW : onInputRejected("Длина пароля «abc»\nне является целым числом.")
+activate MW
+MW --> User : QMessageBox с сообщением об ошибке
+deactivate MW
+deactivate M
+
+@enduml

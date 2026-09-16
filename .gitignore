@@ -1,0 +1,29 @@
+# Каталоги сборки
+build/
+build-*/
+cmake-build-*/
+out/
+
+# Qt Creator
+.qtcreator/
+CMakeLists.txt.user*
+*.pro.user*
+*.autosave
+
+# Автогенерация Qt
+*_autogen/
+ui_*.h
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+
+# Объектные файлы и бинарники
+*.o
+*.obj
+*.exe
+*.dll
+*.a
+
+# Временные файлы Word и ОС
+~$*
+Thumbs.db
