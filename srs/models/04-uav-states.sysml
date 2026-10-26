@@ -6,6 +6,7 @@ package UavStates {
     item def 'ТО выполнено';
     item def 'Критичная неисправность';
     item def 'Неисправность устранена';
+    item def 'Списание';
 
     state def <UavState> 'Состояние БЛА' {
         entry; then serviceable;
@@ -14,6 +15,7 @@ package UavStates {
         state <dueMaint> 'Требуется ТО';
         state <inMaint> 'На ТО';
         state <faulty> 'Неисправен';
+        state <retired> 'Списан';
 
         transition first serviceable accept : 'Порог ТО достигнут' then dueMaint;
         transition first serviceable accept : 'ТО начато' then inMaint;
@@ -22,5 +24,7 @@ package UavStates {
         transition first serviceable accept : 'Критичная неисправность' then faulty;
         transition first dueMaint accept : 'Критичная неисправность' then faulty;
         transition first faulty accept : 'Неисправность устранена' then serviceable;
+        transition first serviceable accept : 'Списание' then retired;
+        transition first faulty accept : 'Списание' then retired;
     }
 }

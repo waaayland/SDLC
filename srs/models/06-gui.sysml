@@ -55,7 +55,7 @@ package GuiMockups {
         part <fleet> 'Таблица парка БЛА' : 'Таблица' {
             attribute redefines 'столбцы' = ("Борт", "Тип", "Состояние", "Налёт, ч", "До ТО, ч / дн", "Последний полёт");
         }
-        part <alerts> 'Панель предупреждений о ТО' : 'Список';
+        part <alerts> 'Панель предупреждений (ТО, допуски, ресурс АКБ)' : 'Список';
         part <status> 'Строка состояния' : 'Статусная строка';
 
         connect menu to tools;
@@ -84,7 +84,7 @@ package GuiMockups {
             part 'АКБ и нагрузка' : 'Таблица';
         }
         part <btns> 'Кнопки' : 'Панель' {
-            attribute redefines 'кнопки' = ("Редактировать", "Удалить", "Печать формуляра", "Закрыть");
+            attribute redefines 'кнопки' = ("Редактировать", "Списать", "Печать формуляра", "Закрыть");
         }
         connect head to tabs;
         connect uavState to tabs;
@@ -155,7 +155,7 @@ package GuiMockups {
         }
         part <preview> 'Предварительный просмотр' : 'Таблица';
         part <btns> 'Кнопки' : 'Панель' {
-            attribute redefines 'кнопки' = ("Сформировать", "Экспорт CSV", "Печать");
+            attribute redefines 'кнопки' = ("Сформировать", "Экспорт CSV", "Экспорт PDF", "Печать");
         }
         connection : 'Данные отчёта' connect params to preview;
         connect preview to btns;
