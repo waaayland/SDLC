@@ -40,6 +40,7 @@
 - `ProjectTemplate` — шаблон проекта и описание репозитория
 - `lab3` — бизнес-требования курсового проекта (SRS)
 - `lab4` — системные требования, архитектура (SDD, ADR-0001…0006), переписка с Заказчиком и итерационные планы
+- `lab5` — модель динамического поведения UML 2.5 (глоссарий, доп. спецификации, Use-Case, Activity, State, Sequence), SDD v0.4, ADR-0007 и реализация Итерации 1 (`project/UAVLog/`)
 
 ## Курсовой проект
 
@@ -50,12 +51,20 @@
 
 - Спецификация требований (SRS v0.3): [`srs/srs-uavlog.md`](srs/srs-uavlog.md)
 - Модели SysML v2 и прототип GUI: [`srs/models/`](srs/models/), изображения — [`srs/images/`](srs/images/)
-- Описание проектирования (SDD v0.3): [`sdd/sdd-uavlog.md`](sdd/sdd-uavlog.md), диаграммы — [`sdd/images/`](sdd/images/)
-- Протоколы архитектурных решений (ADR-0001…0006): [`docs/decisions/`](docs/decisions/)
+- Описание проектирования (SDD v0.4): [`sdd/sdd-uavlog.md`](sdd/sdd-uavlog.md), диаграммы — [`sdd/images/`](sdd/images/)
+- Модель динамического поведения UML 2.5 (ЛР №5):
+  - Глоссарий проекта (таблица): [`docs/uml/glossary.md`](docs/uml/glossary.md)
+  - Дополнительные спецификации (FURPS+): [`docs/uml/supplementary-specifications.md`](docs/uml/supplementary-specifications.md)
+  - Спецификация актёров и потоков событий: [`docs/uml/use-case-specifications.md`](docs/uml/use-case-specifications.md)
+  - Исходники PlantUML и изображения: [`docs/uml/models/`](docs/uml/models/), [`docs/uml/images/`](docs/uml/images/)
+- Протоколы архитектурных решений (ADR-0001…0007): [`docs/decisions/`](docs/decisions/)
 - Приоритизация, планы (v1–v4) и переписка с Заказчиком: [`docs/planning/`](docs/planning/)
+- Исходный код приложения и модульные тесты (Итерация 1): [`project/UAVLog/`](project/UAVLog/)
 
-## Сборка
+## Сборка и тестирование UAVLog
 
-1. Открыть `project/PasswordGenerator/CMakeLists.txt` в Qt Creator.
-2. Выбрать комплект *Desktop Qt 6.11.2 MinGW 64-bit* (генератор Ninja).
-3. Собрать и запустить проект (Ctrl+R).
+```bash
+cmake -S project/UAVLog -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j 8
+ctest --test-dir build --output-on-failure
+```
