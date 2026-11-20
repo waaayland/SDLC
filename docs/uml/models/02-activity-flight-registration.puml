@@ -1,0 +1,88 @@
+@startuml
+title Диаграмма активности: Предполётный осмотр и регистрация полёта (UAVLog 1.0)
+skinparam dpi 200
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 11
+skinparam activity {
+  BackgroundColor #F4F8FC
+  BorderColor #2B5B84
+  DiamondBackgroundColor #FFF8E7
+  DiamondBorderColor #B58900
+  ArrowColor #2B5B84
+}
+skinparam note {
+  BackgroundColor #FFFDF0
+  BorderColor #B59B4C
+  FontSize 10
+}
+
+start
+:Оператор открывает диалог\n«Регистрация полёта» (клавиша Tab);
+:Выбрать борт, оператора, АКБ;\nввести дату, время взлёта/посадки, задачу и район;
+:Авторасчёт длительности полёта\n(duration = посадка − взлёт);
+
+if (0 < duration ≤ 720 мин (12 ч)?) then ([нет])
+  :Вывести ошибку валидации времени;\nзаблокировать кнопку «Сохранить»;
+  stop
+else ([да])
+  :Выполнить 5-факторную проверку допуска\nAdmissionService::evaluate() {≤ 200 мс};
+  note right
+    5 факторов допуска (REQ-FUNC-006-3):
+    1) uavOk: статус борта == Исправен
+    2) maintOk: ни один вид ТО не просрочен
+    3) operatorOk: допуск действует и на тип БЛА
+    4) batteryOk: циклы АКБ < max_cycles
+    5) preflightOk: осмотр на дату пройден (F-15)
+  end note
+
+  if (Все 5 факторов допуска выполнены?) then ([нет — отказ])
+    :Окрасить индикатор в красный;\nвывести список всех причин отказа;\nоставить «Сохранить» неактивной;
+    if (Причина = нет предполётного осмотра?) then ([да])
+      :Перейти к диалогу\n«Предполётный осмотр» (UC-04);
+      stop
+    else ([нет])
+      :Отменить ввод (Esc) и уведомить\nтехника / начальника службы;
+      stop
+    endif
+  else ([да — допущен])
+    :Окрасить индикатор в зелёный («Допущен»);\nактивировать кнопку «Сохранить»;
+    :Оператор нажимает «Сохранить» (Enter);
+    :Проверить права через RbacGuard\n(роль Оператор или Администратор);
+
+    if (Права RBAC подтверждены?) then ([нет])
+      :Отклонить операцию (SecurityError)\nи записать попытку в лог ошибок;
+      stop
+    else ([да])
+      :Открыть транзакцию SQLite WAL\nBEGIN IMMEDIATE (UnitOfWork);
+      :INSERT запись полёта в таблицу flights;
+
+      fork
+        :Пересчитать налёт\nи число полётов борта;
+      fork again
+        :Пересчитать циклы АКБ\nи проверить ресурс;
+      fork again
+        :Рассчитать остатки до ТО\n(налёт / календарь);
+      fork again
+        :Записать событие\nв audit_log;
+      end fork
+
+      if (Достигнут порог ТО (остаток ≤ 0)?) then ([да])
+        :UavStateMachine: перевести борт\n«Исправен» → «Требуется ТО»;
+      else ([нет])
+      endif
+
+      if (Все операции транзакции успешны?) then ([да])
+        :COMMIT транзакции SQLite WAL;
+        :Обновить таблицу парка БЛА\nи панель предупреждений (10 % / 7 дн. / 90 %);
+        stop
+      else ([нет — сбой записи])
+        :ROLLBACK транзакции (REQ-REL-001);\nзаписать диагностику в ротируемый лог;
+        :Показать сообщение об ошибке\n(целостность БД сохранена);
+        stop
+      endif
+    endif
+  endif
+endif
+@enduml

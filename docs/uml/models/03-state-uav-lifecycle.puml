@@ -1,0 +1,73 @@
+@startuml
+title state machine UavLifecycle — Диаграмма состояний жизненного цикла БЛА (UAVLog 1.0)
+skinparam dpi 200
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 11
+skinparam state {
+  BackgroundColor #F4F8FC
+  BorderColor #2B5B84
+  ArrowColor #2B5B84
+  FontStyle bold
+}
+
+[*] --> Operational : Регистрация борта в реестре\n/ status = Serviceable; audit_log()
+
+state "В эксплуатации (Operational)" as Operational {
+  [*] --> Serviceable
+
+  state "Исправен (Serviceable)" as Serviceable #EBF8EE {
+    Serviceable : entry / разрешить допуск (uavOk = true)
+    Serviceable : do / учёт полётов, осмотров и контроль порогов ТО
+    Serviceable : exit / зафиксировать смену статуса в audit_log
+  }
+
+  state "Требуется ТО (DueMaintenance)" as DueMaintenance #FFF8E1 {
+    DueMaintenance : entry / заблокировать вылет (maintOk = false)
+    DueMaintenance : do / вывод красного предупреждения на панель
+    DueMaintenance : exit / обновить индикатор статуса в реестре
+  }
+
+  state "На ТО (InMaintenance)" as InMaintenance #EEF3FC {
+    InMaintenance : entry / заблокировать вылет (uavOk = false)
+    InMaintenance : do / выполнение регламентных работ техником
+    InMaintenance : exit / обнулить наработку по виду ТО
+  }
+
+  state "Неисправен (Faulty)" as Faulty #FDEDEC {
+    Faulty : entry / заблокировать вылет (uavOk = false)
+    Faulty : do / ожидание ремонта и отметки устранения отказа
+    Faulty : exit / проверить отсутствие других открытых отказов
+  }
+
+  Serviceable --> DueMaintenance : Порог ТО достигнут\n[remHours ≤ 0 || remDays ≤ 0]\n/ создать предупреждение
+  Serviceable --> InMaintenance : Начать плановое ТО\n[роль ∈ {Техник, Админ}]
+  DueMaintenance --> InMaintenance : Начать просроченное ТО\n[роль ∈ {Техник, Админ}]
+
+  InMaintenance --> Serviceable : ТО выполнено\n[все работы отмечены &&\nнет открытых крит. отказов &&\nнет иных просроч. ТО]\n/ recalculateUav()
+  InMaintenance --> DueMaintenance : ТО выполнено\n[остались иные просроч. ТО]\n/ recalculateUav()
+  InMaintenance --> Faulty : Выявлен крит. отказ на ТО\n/ создать запись в faults
+
+  Serviceable --> Faulty : Критичная неисправность\nили крит. замечание осмотра (F-15)\n/ блокировать допуск
+  DueMaintenance --> Faulty : Критичная неисправность\n/ блокировать допуск
+
+  Faulty --> Serviceable : Все крит. отказы устранены\n[указаны работы &&\nни один вид ТО не просрочен]\n/ recalculateUav()
+  Faulty --> DueMaintenance : Все крит. отказы устранены\n[есть просроченное ТО]\n/ обновить предупреждения
+}
+
+Operational --> Retired : Списание борта\n[роль = Администратор &&\nподтверждение списания]\n/ перевести в архив (только чтение);\naudit_log()
+
+state "Списан (Retired)" as Retired #EEEEEE {
+  Retired : entry / запретить все полёты, ТО и правки (R/O)
+  Retired : do / хранение полной истории эксплуатации в архиве
+}
+
+Retired --> [*]
+
+note bottom of Retired
+  Терминальное состояние (REQ-FUNC-003-2):
+  возврат в эксплуатацию и физическое
+  удаление истории запрещены.
+end note
+@enduml

@@ -2,13 +2,13 @@
 
 Для UAVLog — Журнал эксплуатации парка БЛА
 
-Версия 0.3
+Версия 0.4
 
 Подготовил Осипенко О. С., гр. 434701 (Архитектор системы)
 
 БГУИР, военный факультет, кафедра ЭВМ
 
-2026-11-19
+2026-11-20
 
 ## Оглавление
 
@@ -46,6 +46,7 @@
 | Осипенко О. С. | 2026-11-16 | Первая редакция SDD на основе согласованного SRS v0.2, идентификация системных требований и выпуск ADR-0001…0005 | 0.1 |
 | Осипенко О. С. | 2026-11-17 | Итоги Раунда 1 с Заказчиком: утверждён ADR-0005 (HTML/CSS через QTextDocument, -8 ч), упрощён GUI журнала аудита в ADR-0003 (-6 ч), унифицирован QSortFilterProxyModel (-4 ч), утверждён итерационный План v2 (160 ч) | 0.2 |
 | Осипенко О. С. | 2026-11-19 | Итоги Раунда 2 с Заказчиком: исключён отдельный реестр перестановок полезной нагрузки (`F-05b`), добавлен модуль `F-15` (предполётные чек-листы и Акт готовности парка), обновлена ER-схема (`DV-04`), добавлен ADR-0006, утверждён План v4 с привлечением Junior-разработчика (релиз 18.12.2026, 13 350 BYN) | 0.3 |
+| Осипенко О. С. | 2026-11-20 | ЛР № 5: добавлена полная модель динамического поведения на UML 2.5 (PlantUML) — глоссарий проекта (`docs/uml/glossary.md`), дополнительные спецификации (`supplementary-specifications.md`), спецификация актёров и прецедентов (`DV-08`), диаграмма активности и диаграмма состояний (`DV-06`), детализированные диаграммы последовательности с `ref`/временными ограничениями (`DV-05`), выпущен `ADR-0007` | 0.4 |
 
 ---
 
@@ -90,13 +91,14 @@
 | Спецификация требований UAVLog (SRS) | Осипенко О. С., v0.3 | [`srs/srs-uavlog.md`](../srs/srs-uavlog.md) | Нормативный |
 | IEEE 1016-2009 Software Design Descriptions | IEEE, 2009 | ieeexplore.ieee.org | Справочный |
 | ISO/IEC/IEEE 42010:2011 Architecture description | ISO/IEC/IEEE, 2011 | iso.org | Справочный |
-| Протоколы архитектурных решений (ADR-0001…0006) | Осипенко О. С., 2026 | [`docs/decisions/`](../docs/decisions/) | Нормативный |
+| Протоколы архитектурных решений (ADR-0001…0007) | Осипенко О. С., 2026 | [`docs/decisions/`](../docs/decisions/) | Нормативный |
+| Глоссарий, доп. спецификации и UML 2.5 модели динамики | Осипенко О. С., v1.0 | [`docs/uml/`](../docs/uml/) | Нормативный |
 | Приоритизация и план разработки по итерациям | Осипенко О. С., v3.0 | [`docs/planning/prioritization-and-plan.md`](../docs/planning/prioritization-and-plan.md) | Нормативный |
 | Справочник трассируемости и сравнения SRS/SDD | Кафедра ЭВМ БГУИР | [`docs/srs-vs-sdd.md`](../docs/srs-vs-sdd.md), [`docs/traceability.md`](../docs/traceability.md) | Справочный |
 
 ### 1.5 Обзор документа {#15-document-overview}
 
-Раздел 2 определяет интересы стейкхолдеров и выбранные архитектурные точки зрения (ISO/IEC/IEEE 42010). Раздел 3 содержит конкретные проектные представления (`DV-01`…`DV-07`) с диаграммами, спецификациями интерфейсов и системными требованиями (`SYS-*`), трассируемыми к `REQ-*`. Раздел 4 сводит принятые архитектурные решения со ссылками на полные MADR-файлы. Раздел 5 содержит сводку системных требований и матрицу трассируемости. Изменения документа фиксируются в таблице «История изменений» по итогам каждого раунда согласования с Заказчиком.
+Раздел 2 определяет интересы стейкхолдеров и выбранные архитектурные точки зрения (ISO/IEC/IEEE 42010). Раздел 3 содержит конкретные проектные представления (`DV-01`…`DV-08`) с диаграммами, спецификациями интерфейсов и системными требованиями (`SYS-*`), трассируемыми к `REQ-*` и UML-моделям (`docs/uml/`). Раздел 4 сводит принятые архитектурные решения со ссылками на полные MADR-файлы (`ADR-0001…0007`). Раздел 5 содержит сводку системных требований и сквозную матрицу трассируемости. Изменения документа фиксируются в таблице «История изменений» по итогам каждого этапа проектирования и согласования с Заказчиком.
 
 ---
 
@@ -244,17 +246,23 @@ public:
 
 ---
 
-### DV-05 — Взаимодействие при регистрации полёта и контроле допуска
+### DV-05 — Взаимодействие при регистрации полёта, предполётном осмотре и контроле допуска
 - **ID**: `DV-05-interaction`
-- **Title**: Диаграмма последовательности регистрации полёта с проверкой допуска
+- **Title**: Диаграммы последовательности UML 2.5 регистрации полёта (5-факторный допуск) и предполётного осмотра (F-15)
 - **Viewpoint**: Interaction
 - **Representation**:
 
-При выборе борта, оператора и АКБ в диалоге `FlightDialog` вызывается `AdmissionService::evaluate(...)`. Ветка `alt [allowed == true]` открывает атомарную транзакцию `BEGIN IMMEDIATE`, сохраняет полёт, пересчитывает налёт/циклы/сроки ТО через `MaintenanceEngine`, при необходимости переводит борт в состояние «Требуется ТО» и фиксирует запись в `audit_log`. Ветка `[else]` блокирует кнопку «Сохранить» и выводит оператору список конкретных причин отказа.
+В редакции SDD v0.4 взаимодействие в рантайме детализировано в строгой нотации UML 2.5 (`PlantUML`): указаны рамки `sd`, стереотипы линий жизни (`<<boundary>>`, `<<control>>`, `<<entity>>`), активации, создание (`<<create>>`) и уничтожение (`X`) объекта `AdmissionResult`, временные ограничения `{≤ 200 ms}`, `{≤ 1000 ms}`, `{≤ 15 s}`, комбинированные фрагменты `alt`, `opt` и ссылка `ref` на обработчик отката транзакции (`Handle DB Error / Rollback`).
 
-![Диаграмма последовательности регистрации полёта](images/05-interaction-flight-admission.png)
+1. **Сценарий регистрации полёта (`04-sequence-flight-registration.puml`)**: при выборе борта, оператора и АКБ в `FlightDialog` вызывается `AdmissionService::evaluate(...)` (`{≤ 200 ms}`). Ветка `alt [result.allowed == true]` проверяет права в `RbacGuard`, открывает атомарную транзакцию `BEGIN IMMEDIATE`, сохраняет полёт, пересчитывает налёт/циклы/сроки ТО через `MaintenanceEngine`, при `остаток ≤ 0` (`opt`) переводит борт в состояние `DueMaintenance` и фиксирует запись в `audit_log`. При сбое БД выполняется `ref Handle DB Error / Rollback`. Ветка `else` блокирует кнопку «Сохранить» и выводит оператору список причин отказа.
 
-- **More Information**: Обосновано в [ADR-0002](../docs/decisions/0002-sqlite-wal-and-repository-pattern.md), [ADR-0003](../docs/decisions/0003-pbkdf2-rbac-and-audit-trail.md), [ADR-0004](../docs/decisions/0004-data-driven-maintenance-rules-engine.md). Реализует `REQ-FUNC-006-2`, `REQ-FUNC-007`, `REQ-FUNC-008`, `REQ-REL-001`, `REQ-SEC-004`.
+![UML 2.5 Диаграмма последовательности регистрации полёта](images/uml-04-sequence-flight-registration.png)
+
+2. **Сценарий предполётного осмотра и Акта готовности (`05-sequence-preflight-and-readiness.puml`)**: при выявлении критичного замечания в `PreflightDialog` вызывается `UavStateMachine::transition(Serviceable, CriticalDefect)` с немедленным переводом борта в состояние `Faulty`. Фрагмент `opt` описывает фоновую (`QtConcurrent`, `{≤ 15 s}`) генерацию PDF/A4 «Акта готовности парка» через `ReportService` и передачу задания печати вторичному актёру «Принтер Windows».
+
+![UML 2.5 Диаграмма последовательности предполётного осмотра F-15](images/uml-05-sequence-preflight-and-readiness.png)
+
+- **More Information**: Исходники PlantUML — [`docs/uml/models/04-sequence-flight-registration.puml`](../docs/uml/models/04-sequence-flight-registration.puml) и [`05-sequence-preflight-and-readiness.puml`](../docs/uml/models/05-sequence-preflight-and-readiness.puml). Обосновано в [ADR-0002](../docs/decisions/0002-sqlite-wal-and-repository-pattern.md), [ADR-0003](../docs/decisions/0003-pbkdf2-rbac-and-audit-trail.md), [ADR-0004](../docs/decisions/0004-data-driven-maintenance-rules-engine.md), [ADR-0006](../docs/decisions/0006-preflight-checklists-and-team-scaling.md), [ADR-0007](../docs/decisions/0007-uml-dynamic-behavior-modeling.md). Реализует `REQ-FUNC-006-3`, `REQ-FUNC-007`, `REQ-FUNC-008`, `REQ-FUNC-017`, `REQ-REL-001`, `REQ-SEC-004`.
 
 ---
 
@@ -276,20 +284,30 @@ isWarning = (remHours <= 0.10 * r.interval_hours) OR (remDays <= settings.warn_d
 ```
 Борт автоматически переходит в `DueMaintenance`, если `isOverdue == true` хотя бы для одного вида ТО.
 
-**2) Таблица переходов состояний (`UavStateMachine`, по [`srs/models/04-uav-states.sysml`](../srs/models/04-uav-states.sysml))**:
+**2) Диаграмма активности процесса допуска и регистрации полёта (UML 2.5, [`docs/uml/models/02-activity-flight-registration.puml`](../docs/uml/models/02-activity-flight-registration.puml))**:
+
+Диаграмма активности детализирует поток управления с валидацией длительности (`0 < duration ≤ 720 мин`), 5-факторной проверкой допуска, ветвлением при отсутствии предполётного осмотра, проверкой `RbacGuard`, параллельным пересчётом налёта, циклов АКБ, остатков до ТО и записью аудита (`fork / join`), а также ветками `COMMIT` и `ROLLBACK`.
+
+![UML 2.5 Диаграмма активности регистрации полёта](images/uml-02-activity-flight-registration.png)
+
+**3) Диаграмма состояний жизненного цикла БЛА (UML 2.5, [`docs/uml/models/03-state-uav-lifecycle.puml`](../docs/uml/models/03-state-uav-lifecycle.puml))**:
+
+Конечный автомат `UavStateMachine` включает составное состояние `В эксплуатации (Operational)` (подсостояния `Serviceable`, `DueMaintenance`, `InMaintenance`, `Faulty` с внутренними активностями `entry / do / exit`) и терминальное состояние `Списан (Retired)`.
+
+![UML 2.5 Диаграмма состояний жизненного цикла БЛА](images/uml-03-state-uav-lifecycle.png)
 
 | Текущее состояние | Событие | Новое состояние | Допуск к полёту |
 |-------------------|---------|-----------------|-----------------|
 | `Serviceable` | Порог ТО достигнут (`isOverdue`) | `DueMaintenance` | Запрещён |
 | `Serviceable` / `DueMaintenance` | Начало работ ТО | `InMaintenance` | Запрещён |
 | `InMaintenance` | Регистрация выполненного ТО | `Serviceable` | Разрешён (если нет отказов) |
-| `Serviceable` / `DueMaintenance` | Критичная неисправность | `Faulty` | Запрещён |
+| `Serviceable` / `DueMaintenance` | Критичная неисправность / крит. замечание F-15 | `Faulty` | Запрещён |
 | `Faulty` | Устранение всех критичных отказов | `Serviceable` | Разрешён (если ТО в норме) |
-| `Serviceable` / `Faulty` | Списание администратором | `Retired` (терминальное) | Запрещён навсегда |
+| `Operational` (любое рабочее) | Списание администратором | `Retired` (терминальное) | Запрещён навсегда |
 
-**3) Каталог паттернов**: MVC (активная модель), Service Layer, Repository + Unit of Work, State Machine, Strategy/Policy (правила допуска и порогов из БД), Proxy (`QSortFilterProxyModel`).
+**4) Каталог паттернов**: MVC (активная модель), Service Layer, Repository + Unit of Work, State Machine, Strategy/Policy (правила допуска и порогов из БД), Proxy (`QSortFilterProxyModel`).
 
-- **More Information**: Обосновано в [ADR-0001](../docs/decisions/0001-layered-mvc-architecture.md), [ADR-0004](../docs/decisions/0004-data-driven-maintenance-rules-engine.md). Реализует `REQ-FUNC-003-2`, `REQ-FUNC-006-2`, `REQ-FUNC-007`, `REQ-FUNC-008`, `REQ-FUNC-009-2`, `REQ-FUNC-010`, `REQ-FUNC-011`, `REQ-REUSE-001`.
+- **More Information**: Обосновано в [ADR-0001](../docs/decisions/0001-layered-mvc-architecture.md), [ADR-0004](../docs/decisions/0004-data-driven-maintenance-rules-engine.md), [ADR-0007](../docs/decisions/0007-uml-dynamic-behavior-modeling.md). Реализует `REQ-FUNC-003-2`, `REQ-FUNC-006-3`, `REQ-FUNC-007`, `REQ-FUNC-008`, `REQ-FUNC-009-2`, `REQ-FUNC-010`, `REQ-FUNC-011`, `REQ-REUSE-001`.
 
 ---
 
@@ -309,6 +327,24 @@ isWarning = (remHours <= 0.10 * r.interval_hours) OR (remDays <= settings.warn_d
 - **Отзывчивость UI**: генерация годовых отчётов и `VACUUM INTO`-бэкапов выполняется в фоновом потоке (`QtConcurrent`) с отображением прогресса.
 
 - **More Information**: Обосновано в [ADR-0002](../docs/decisions/0002-sqlite-wal-and-repository-pattern.md) и [ADR-0005](../docs/decisions/0005-native-qt-pdf-and-csv-reporting.md). Реализует `REQ-PERF-001…004`, `REQ-REL-002`, `REQ-REL-003`, `REQ-OBS-001`, `REQ-INST-001`, `REQ-DIST-001`, `REQ-COMP-002`.
+
+---
+
+### DV-08 — Модель вариантов использования и динамическая спецификация (UML 2.5)
+- **ID**: `DV-08-use-cases`
+- **Title**: Диаграмма вариантов использования, спецификация актёров, глоссарий и дополнительные спецификации
+- **Viewpoint**: Context, Interaction (Use-Case View)
+- **Representation**:
+
+Модель вариантов использования формализует границы взаимодействия 7 актёров (обобщённый «Аутентифицированный пользователь», 4 пользовательские роли RBAC, системный инициирующий актёр «Таймер / Системные часы» и вторичный актёр «Принтер Windows») с 16 прецедентами (`UC-01`…`UC-12`, включая `<<include>>` `UC-05a`, `UC-05b`, `UC-11` и `<<extend>>` `UC-05c`, `UC-08a`, `UC-09a`).
+
+![UML 2.5 Диаграмма вариантов использования UAVLog](images/uml-01-use-case.png)
+
+- **Отдельные сопутствующие документы**:
+  - Табличный глоссарий проекта (30 терминов): [`docs/uml/glossary.md`](../docs/uml/glossary.md);
+  - Дополнительные спецификации (FURPS+): [`docs/uml/supplementary-specifications.md`](../docs/uml/supplementary-specifications.md);
+  - Полные описания актёров и потоков событий (основной, альтернативные А1…, потоки ошибок Е1…, пред- и постусловия): [`docs/uml/use-case-specifications.md`](../docs/uml/use-case-specifications.md).
+- **More Information**: Исходник PlantUML — [`docs/uml/models/01-use-case.puml`](../docs/uml/models/01-use-case.puml). Обосновано в [ADR-0007](../docs/decisions/0007-uml-dynamic-behavior-modeling.md). Покрывает все требования `REQ-FUNC-001…017` и `REQ-SEC-001…005`.
 
 ---
 
@@ -358,6 +394,13 @@ isWarning = (remHours <= 0.10 * r.interval_hours) OR (remDays <= settings.warn_d
 - **Outcome**: Выбран вариант **«Привлечение Junior-разработчика со 2-й итерации (План v4)»** с расширением ER-схемы на 4 таблицы чек-листов, 5-м правилом допуска `preflightOk` и обязательным code review (12 ч Lead).
 - **More Information**: [`docs/decisions/0006-preflight-checklists-and-team-scaling.md`](../docs/decisions/0006-preflight-checklists-and-team-scaling.md)
 
+- **ID**: `ADR-0007`
+- **Title**: Механизмы построения и сквозного связывания UML-моделей динамического поведения (Docs-as-Code)
+- **Context**: Требуется формализовать динамическое поведение UAVLog на UML 2.5 (Use-Case, Activity, State Machine, Sequence) с отдельными файлами глоссария и доп. спецификаций и прямой трассировкой к C++17 коду.
+- **Options**: Текстовое моделирование PlantUML (Docs-as-Code); Ручное рисование draw.io; Только SysML v2.
+- **Outcome**: Выбран вариант **«PlantUML (Docs-as-Code) + отдельные спецификации»** с автоматическим рендерингом (`docs/uml/render.py`) и сквозной проекцией связей UML на `RbacGuard`, `AdmissionService`, `MaintenanceEngine` и `UavStateMachine`.
+- **More Information**: [`docs/decisions/0007-uml-dynamic-behavior-modeling.md`](../docs/decisions/0007-uml-dynamic-behavior-modeling.md)
+
 ---
 
 ## 5. Приложения {#5-appendixes}
@@ -385,13 +428,13 @@ isWarning = (remHours <= 0.10 * r.interval_hours) OR (remDays <= settings.warn_d
 | `SYS-NFR-01` | Нефункциональное | Обеспечить: запуск ≤ 5 с, фильтр ≤ 1 с, отчёт ≤ 10 с, PDF ≤ 15 с, ОЗУ ≤ 300 МБ, автономность без сети, покрытие ядра ≥ 80 % | `REQ-PERF-001…004`, `REQ-AVAIL-001`, `REQ-PORT-001`, `REQ-MAINT-001` | `DV-02`, `DV-07`, `ADR-0001` |
 | `SYS-FUNC-11` | Функциональное *(добавлено в v0.3, F-15)* | Реализовать шаблоны чек-листов предполётного осмотра по типам БЛА, диалог осмотра с блокировкой допуска при критичных замечаниях и PDF/A4 «Акт готовности парка к полётам» | `REQ-FUNC-017`, `REQ-FUNC-006-3`, `REQ-INT-005`, `REQ-COMP-001` | `DV-03`, `DV-04`, `DV-05`, `ADR-0005`, `ADR-0006` |
 
-### 5.2 Матрица трассируемости (SRS ↔ SDD ↔ ADR ↔ План v4)
+### 5.2 Матрица трассируемости (SRS ↔ UML ↔ SDD ↔ ADR ↔ План v4)
 
-| Бизнес-цель | Требования SRS | Системное требование | Представления SDD | Протоколы ADR | Модуль Плана v4 |
-|-------------|----------------|----------------------|-------------------|---------------|-----------------|
-| БЦ-1 Единый учёт парка | `REQ-FUNC-002`, `003-2`, `004-2`, `012`, `013`, `015`, `CON-3` | `SYS-DATA-01`, `SYS-FUNC-01…03`, `09`, `SYS-REL-01` | `DV-01`, `DV-03`, `DV-04`, `DV-07` | `ADR-0001`, `ADR-0002`, `ADR-0006` | `F-01`, `F-03`, `F-04`, `F-05a`, `F-11`, `F-14` |
-| БЦ-2 Достоверный налёт | `REQ-FUNC-007`, `016`, `REQ-REL-001` | `SYS-FUNC-03`, `SYS-FUNC-06` | `DV-03`, `DV-05`, `DV-06` | `ADR-0002`, `ADR-0004` | `F-05a`, `F-08` |
-| БЦ-3 ТО без просрочек | `REQ-FUNC-002`, `008`, `009-2`, `010`, `REQ-REUSE-001` | `SYS-FUNC-01`, `06`, `07`, `08` | `DV-03`, `DV-04`, `DV-06` | `ADR-0004` | `F-03`, `F-08`, `F-09`, `F-10` |
-| БЦ-4 Контроль допуска | `REQ-FUNC-005-2`, `006-3`, `011`, `017`, `REQ-MAINT-001` | `SYS-FUNC-04`, `05`, `08`, `11` | `DV-03`, `DV-05`, `DV-06` | `ADR-0001`, `ADR-0004`, `ADR-0006` | `F-06`, `F-07`, `F-10`, `F-15` |
-| БЦ-5 Быстрая отчётность | `REQ-FUNC-014-2`, `017`, `REQ-INT-005`, `007`, `REQ-PERF-003`, `REQ-COMP-001` | `SYS-FUNC-10`, `SYS-FUNC-11` | `DV-02`, `DV-07` | `ADR-0005`, `ADR-0006` | `F-12`, `T-15.4` |
-| Безопасность и качество | `REQ-FUNC-001`, `REQ-SEC-001…005`, `REQ-PERF-001…004`, `REQ-REL-001…003`, `REQ-OBS-001`, `REQ-AVAIL-001` | `SYS-SEC-01`, `02`, `SYS-REL-01`, `SYS-NFR-01` | `DV-01`, `DV-02`, `DV-04`, `DV-07` | `ADR-0001`, `ADR-0002`, `ADR-0003` | `F-01`, `F-02`, `F-13`, `F-14` |
+| Бизнес-цель | Требования SRS | Прецеденты и диаграммы UML | Представления SDD | Протоколы ADR | Модуль Плана v4 |
+|-------------|----------------|----------------------------|-------------------|---------------|-----------------|
+| БЦ-1 Единый учёт парка | `REQ-FUNC-002`, `003-2`, `004-2`, `012`, `013`, `015`, `CON-3` | `UC-02`, `UC-08`, `UC-08a`, `UC-10`, State | `DV-01`, `DV-03`, `DV-04`, `DV-07`, `DV-08` | `ADR-0001`, `ADR-0002`, `ADR-0006`, `ADR-0007` | `F-01`, `F-03`, `F-04`, `F-05a`, `F-11`, `F-14` |
+| БЦ-2 Достоверный налёт | `REQ-FUNC-007`, `016`, `REQ-REL-001` | `UC-05`, `UC-05b`, Activity, Sequence | `DV-03`, `DV-05`, `DV-06`, `DV-08` | `ADR-0002`, `ADR-0004`, `ADR-0007` | `F-05a`, `F-08` |
+| БЦ-3 ТО без просрочек | `REQ-FUNC-002`, `008`, `009-2`, `010`, `REQ-REUSE-001` | `UC-02`, `UC-05b`, `UC-05c`, `UC-06`, State | `DV-03`, `DV-04`, `DV-06`, `DV-08` | `ADR-0004`, `ADR-0007` | `F-03`, `F-08`, `F-09`, `F-10` |
+| БЦ-4 Контроль допуска | `REQ-FUNC-005-2`, `006-3`, `011`, `017`, `REQ-MAINT-001` | `UC-03`, `UC-04`, `UC-05`, `UC-05a`, `UC-07`, Activity, State, Sequence | `DV-03`, `DV-05`, `DV-06`, `DV-08` | `ADR-0001`, `ADR-0004`, `ADR-0006`, `ADR-0007` | `F-06`, `F-07`, `F-10`, `F-15` |
+| БЦ-5 Быстрая отчётность | `REQ-FUNC-014-2`, `017`, `REQ-INT-005`, `007`, `REQ-PERF-003`, `REQ-COMP-001` | `UC-09`, `UC-09a`, Sequence F-15 | `DV-02`, `DV-05`, `DV-07`, `DV-08` | `ADR-0005`, `ADR-0006`, `ADR-0007` | `F-12`, `T-15.4` |
+| Безопасность и качество | `REQ-FUNC-001`, `REQ-SEC-001…005`, `REQ-PERF-001…004`, `REQ-REL-001…003`, `REQ-OBS-001`, `REQ-AVAIL-001` | `UC-01`, `UC-10`, `UC-11`, `UC-12`, Доп. спец. | `DV-01`, `DV-02`, `DV-04`, `DV-07`, `DV-08` | `ADR-0001`, `ADR-0002`, `ADR-0003`, `ADR-0007` | `F-01`, `F-02`, `F-13`, `F-14` |

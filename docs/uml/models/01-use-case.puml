@@ -1,0 +1,115 @@
+@startuml
+title Диаграмма вариантов использования ПО UAVLog 1.0
+left to right direction
+skinparam dpi 200
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 11
+skinparam nodesep 10
+skinparam ranksep 35
+skinparam packageStyle rectangle
+skinparam actorStyle stick
+skinparam usecase {
+  BackgroundColor #F4F8FC
+  BorderColor #2B5B84
+  ArrowColor #2B5B84
+}
+skinparam note {
+  BackgroundColor #FFFDF0
+  BorderColor #B59B4C
+  FontSize 9
+}
+
+' === Инициирующие актёры (слева) ===
+actor "Аутентифицированный\nпользователь" as User
+actor "Администратор\n(Нач. службы)" as Admin
+actor "Техник\n(Техник по ТО)" as Tech
+actor "Оператор\n(Оператор БЛА)" as Oper
+actor "Наблюдатель\n(Руководитель)" as Obs
+actor "Таймер /\nСистемные часы" as Clock
+
+Admin -|> User
+Tech -|> User
+Oper -|> User
+Obs -|> User
+
+' === Граница системы ===
+rectangle "ПО UAVLog 1.0 (АРМ службы эксплуатации БЛА)" as System {
+  usecase "UC-01: Войти в систему" as UC01
+  usecase "UC-08: Просмотреть формуляр\nи состояние парка" as UC08
+  usecase "UC-08a: Списать борт\nв архив" as UC08a #FFF5E6
+
+  usecase "UC-02: Вести справочники парка,\nрегламентов ТО и чек-листов" as UC02
+  usecase "UC-03: Вести реестр операторов\nи сроков допуска" as UC03
+  usecase "UC-10: Резервное копирование\nи восстановление БД" as UC10
+
+  usecase "UC-04: Провести предполётный\nосмотр по чек-листу (F-15)" as UC04
+  usecase "UC-05: Зарегистрировать полёт" as UC05
+  usecase "UC-06: Зарегистрировать\nвыполненное ТО" as UC06
+  usecase "UC-07: Зарегистрировать /\nустранить неисправность" as UC07
+
+  usecase "UC-09: Сформировать отчёт /\nАкт готовности (CSV/PDF)" as UC09
+  usecase "UC-09a: Распечатать\nдокумент на A4" as UC09a #FFF5E6
+
+  usecase "UC-12: Автоблокировка (15 мин)\nи проверка календарных сроков" as UC12
+
+  usecase "UC-05a: Проверить 5-факторный\nдопуск к полёту" as UC05a #EBF3FA
+  usecase "UC-05b: Пересчитать налёт,\nциклы АКБ и сроки ТО" as UC05b #EBF3FA
+  usecase "UC-05c: Сформировать\nпредупреждения (ТО/допуски/АКБ)" as UC05c #FFF5E6
+  usecase "UC-11: Зафиксировать событие\nв журнале аудита" as UC11 #EBF3FA
+}
+
+' === Вторичный системный актёр (справа) ===
+actor "Принтер\n(Спулер Windows)" as Printer
+
+' === Коммуникация ===
+User --> UC01
+User --> UC08
+
+Admin --> UC02
+Admin --> UC03
+Admin --> UC08a
+Admin --> UC09
+Admin --> UC10
+
+Tech --> UC04
+Tech --> UC06
+Tech --> UC07
+
+Oper --> UC04
+Oper --> UC05
+Oper --> UC07
+
+Obs --> UC09
+
+Clock --> UC12
+Clock --> UC10
+
+UC09a --> Printer
+
+' === Включения <<include>> ===
+UC01 ..> UC11 : <<include>>
+UC02 ..> UC11 : <<include>>
+UC03 ..> UC11 : <<include>>
+UC04 ..> UC11 : <<include>>
+UC05 ..> UC05a : <<include>>
+UC05 ..> UC05b : <<include>>
+UC05 ..> UC11 : <<include>>
+UC06 ..> UC05b : <<include>>
+UC06 ..> UC11 : <<include>>
+UC07 ..> UC11 : <<include>>
+UC10 ..> UC11 : <<include>>
+UC12 ..> UC05b : <<include>>
+
+' === Расширения <<extend>> ===
+UC08a ..> UC08 : <<extend>>
+UC05c ..> UC05b : <<extend>>
+UC09a ..> UC09 : <<extend>>
+
+legend bottom
+  **Обозначения:** сплошная стрелка — коммуникация (от инициатора); пустой треугольник — обобщение актёров;
+  пунктир <<include>> — обязательное включение; пунктир <<extend>> — условное расширение.
+  Подробные описания ролей актёров и потоков событий прецедентов приведены в docs/uml/use-case-specifications.md.
+endlegend
+@enduml

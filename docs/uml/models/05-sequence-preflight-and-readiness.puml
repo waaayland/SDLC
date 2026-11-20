@@ -1,0 +1,81 @@
+@startuml
+mainframe **sd** Предполётный осмотр (F-15) и формирование Акта готовности парка
+skinparam dpi 200
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 11
+skinparam sequence {
+  ArrowColor #2B5B84
+  ActorBorderColor #2B5B84
+  LifeLineBorderColor #4A6A8A
+  LifeLineBackgroundColor #F4F8FC
+  ParticipantBorderColor #2B5B84
+  ParticipantBackgroundColor #F4F8FC
+  GroupBorderColor #2B5B84
+  GroupHeaderFontColor #1D3E5E
+}
+
+actor "Техник /\nОператор" as User
+participant "<<boundary>>\n:PreflightDialog" as UI
+participant "<<control>>\n:PreflightService" as PS
+participant "<<control>>\n:UavStateMachine" as SM
+participant "<<entity>>\n:UnitOfWork\n(SQLite WAL)" as DB
+participant "<<control>>\n:ReportService\n(QPdfWriter)" as RS
+actor "Принтер\nWindows" as Printer
+
+User -> UI : открыть осмотр(uavId, date)
+activate UI
+UI -> PS : loadTemplateForUav(uavId)
+activate PS
+PS -> DB : selectChecklistItems(uavTypeId)
+activate DB
+DB --> PS : items[] (пункт, признак критичности)
+deactivate DB
+PS --> UI : items[]
+deactivate PS
+
+UI --> User : отобразить контрольную карту
+User -> UI : отметить все пункты и нажать «Сохранить»
+
+UI -> PS : saveInspection(uavId, date, results[], user)
+activate PS
+PS -> DB : beginImmediate()
+activate DB
+PS -> DB : insertPreflightCheckAndResults(...)
+
+alt нет критичных замечаний (passed == true)
+  PS -> DB : insertAuditLog(user, "PREFLIGHT_PASS", uavId)
+  PS -> DB : commit()
+  PS --> UI : InspectionPassed (preflightOk = true)
+  UI --> User : осмотр пройден, борт готов к допуску
+else выявлено критичное замечание (passed == false)
+  PS -> SM : transition(Serviceable, CriticalDefect)
+  activate SM
+  SM --> PS : newState = Faulty
+  deactivate SM
+  PS -> DB : updateUavStatus(uavId, Faulty)
+  PS -> DB : insertAuditLog(user, "PREFLIGHT_FAIL_FAULTY", uavId)
+  PS -> DB : commit()
+  PS --> UI : InspectionFailed (борт переведён в «Неисправен»)
+  UI --> User : допуск заблокирован, статус обновлён
+end
+deactivate DB
+deactivate PS
+
+opt формирование и печать Акта готовности парка (Админ / Наблюдатель)
+  User -> RS : generateReadinessActPdf(date)
+  activate RS
+  note right of RS : В фоновом потоке QtConcurrent\n**{≤ 15 s}** (REQ-PERF-003)
+  RS -> DB : queryReadyUavsWithPreflight(date)
+  activate DB
+  DB --> RS : список готовых бортов и осмотров
+  deactivate DB
+  RS -> RS : рендер HTML/CSS → QTextDocument → PDF A4\n(заголовок, дата, таблица, строка подписи)
+  RS -> Printer : отправить задание печати A4 (опционально)
+  RS --> User : файл PDF сохранён / отправлен на печать
+  deactivate RS
+end
+
+deactivate UI
+@enduml

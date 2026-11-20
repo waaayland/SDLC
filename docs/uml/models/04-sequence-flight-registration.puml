@@ -1,0 +1,105 @@
+@startuml
+mainframe **sd** Регистрация полёта и 5-факторный контроль допуска (UAVLog 1.0)
+skinparam dpi 200
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 11
+skinparam sequence {
+  ArrowColor #2B5B84
+  ActorBorderColor #2B5B84
+  LifeLineBorderColor #4A6A8A
+  LifeLineBackgroundColor #F4F8FC
+  ParticipantBorderColor #2B5B84
+  ParticipantBackgroundColor #F4F8FC
+  GroupBorderColor #2B5B84
+  GroupHeaderFontColor #1D3E5E
+}
+
+actor "Оператор БЛА" as Oper
+participant "<<boundary>>\n:FlightDialog" as UI
+participant "<<control>>\n:FlightService" as FS
+participant "<<control>>\n:AdmissionService" as AS
+participant "<<entity>>\n:AdmissionResult" as Res
+participant "<<control>>\n:MaintenanceEngine" as ME
+participant "<<entity>>\n:UnitOfWork\n(SQLite WAL)" as DB
+
+Oper -> UI : выбрать(борт, оператор, АКБ, дата, время)
+activate UI
+
+UI -> UI : validateDuration(взлёт, посадка)\n(0 < duration ≤ 720 мин)
+
+UI -> FS : checkAdmission(uavId, opId, batId, date)
+activate FS
+note right of FS : Ограничение отклика:\n**{≤ 200 ms}**
+
+FS -> AS : evaluate(uavId, opId, batId, date)
+activate AS
+
+AS -> DB : fetchAdmissionContext(uavId, opId, batId, date)
+activate DB
+DB --> AS : состояние, сроки ТО, допуск, циклы АКБ, осмотр F-15
+deactivate DB
+
+create Res
+AS -> Res : <<create>> AdmissionResult(5 факторов, reasons)
+AS --> FS : result : AdmissionResult
+deactivate AS
+
+FS --> UI : result : AdmissionResult
+deactivate FS
+
+alt result.allowed == true
+  UI -> UI : зелёный индикатор «Допущен»;\nактивировать кнопку «Сохранить»
+  Oper -> UI : нажать «Сохранить» (Enter)
+
+  UI -> FS : registerFlight(flightDto, currentUser)
+  activate FS
+  note right of FS : Ограничение сохранения:\n**{≤ 1000 ms}**
+
+  FS -> FS : RbacGuard::require(currentUser, RegisterFlight)
+  FS -> DB : beginImmediate()
+  activate DB
+
+  FS -> DB : insertFlight(flightDto)
+  DB --> FS : flightId
+
+  FS -> ME : recalculateUav(uavId, batId, flightDate)
+  activate ME
+  ME -> DB : aggregateHoursAndCycles(uavId, batId)
+  DB --> ME : totalFlightMin, akbCycles, maintRemainders
+
+  opt есть вид ТО с остатком ≤ 0
+    ME -> DB : updateUavStatus(uavId, DueMaintenance)
+  end
+
+  ME --> FS : recalcSummary + alerts
+  deactivate ME
+
+  FS -> DB : insertAuditLog(user, "FLIGHT_CREATE", flightId)
+
+  alt все запросы успешны
+    FS -> DB : commit()
+    DB --> FS : ok
+    FS --> UI : SaveSuccess(recalcSummary, alerts)
+    UI -> UI : обновить таблицу парка и панель предупреждений
+    UI --> Oper : подтверждение сохранения полёта
+  else ошибка БД / сбой записи
+    ref over FS, DB
+      Handle DB Error / Rollback (REQ-REL-001, REQ-OBS-001):
+      rollback(), запись в ротируемый лог ошибок
+    end ref
+    FS --> UI : SaveError(диагностика)
+    UI --> Oper : сообщение об ошибке (целостность сохранена)
+  end
+  deactivate DB
+  deactivate FS
+
+else отказ в допуске (result.allowed == false)
+  UI -> UI : красный индикатор;\nвывести result.reasons[];\nоставить «Сохранить» неактивной
+  UI --> Oper : отказ в допуске с перечнем причин
+end
+
+destroy Res
+deactivate UI
+@enduml
