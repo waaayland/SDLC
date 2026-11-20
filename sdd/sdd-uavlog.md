@@ -2,13 +2,13 @@
 
 Для UAVLog — Журнал эксплуатации парка БЛА
 
-Версия 0.1
+Версия 0.2
 
 Подготовил Осипенко О. С., гр. 434701 (Архитектор системы)
 
 БГУИР, военный факультет, кафедра ЭВМ
 
-2026-11-16
+2026-11-17
 
 ## Оглавление
 
@@ -44,6 +44,7 @@
 | Name | Date | Reason For Changes | Version |
 |------|------|--------------------|---------|
 | Осипенко О. С. | 2026-11-16 | Первая редакция SDD на основе согласованного SRS v0.2, идентификация системных требований и выпуск ADR-0001…0005 | 0.1 |
+| Осипенко О. С. | 2026-11-17 | Итоги Раунда 1 с Заказчиком: утверждён ADR-0005 (HTML/CSS через QTextDocument, -8 ч), упрощён GUI журнала аудита в ADR-0003 (-6 ч), унифицирован QSortFilterProxyModel (-4 ч), утверждён итерационный План v2 (160 ч) | 0.2 |
 
 ---
 
@@ -346,7 +347,7 @@ isWarning = (remHours <= 0.10 * r.interval_hours) OR (remDays <= settings.warn_d
 - **Title**: Формирование отчётов, экспорт в CSV/PDF и печать средствами Qt
 - **Context**: Требуются 4 отчёта, формуляр A4, CSV (UTF-8 BOM, `;`) и PDF за ≤ 15 с на бесплатном стеке (`CON-5`).
 - **Options**: Отрисовка `QPainter` (20 ч); HTML/CSS-шаблоны `QTextDocument` + `QPdfWriter` (12 ч); Внешний генератор отчётов.
-- **Outcome**: Предложен выбор между `QPainter` и `QTextDocument` для согласования с Заказчиком в Раунде 1 (`status: proposed`).
+- **Outcome**: Выбран вариант **«HTML/CSS-шаблоны `QTextDocument` + `QPdfWriter`»** (утверждено в Раунде 1, 17.11.2026, `status: accepted`), экономия 8 ч без потери качества A4/PDF.
 - **More Information**: [`docs/decisions/0005-native-qt-pdf-and-csv-reporting.md`](../docs/decisions/0005-native-qt-pdf-and-csv-reporting.md)
 
 ---
