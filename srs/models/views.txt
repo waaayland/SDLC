@@ -1,0 +1,13 @@
+# имя PNG | аргументы команды %viz
+01-context        | --view=Interconnection --style=LR UAVLogContext::context
+02-usecases       | --view=Case --style=LR UAVLogUseCases
+03-business-goals | --view=Tree --style=LR BusinessGoals
+04-uav-states     | --view=State UavStates::UavState
+05-flight-registration | --view=Action FlightRegistration::RegisterFlight
+06-gui-navigation | --view=Interconnection --style=LR GuiNavigation::nav
+07-gui-login      | --view=Interconnection GuiMockups::login
+08-gui-main       | --view=Interconnection GuiMockups::main
+09-gui-card       | --view=Interconnection GuiMockups::card
+10-gui-flight     | --view=Interconnection GuiMockups::flight
+11-gui-maint      | --view=Interconnection GuiMockups::maint
+12-gui-reports    | --view=Interconnection GuiMockups::reports
