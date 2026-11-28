@@ -58,7 +58,7 @@ informed: Внук О. М. (Преподаватель)
    - **Диаграммы последовательности (`04`, `05`)** → стереотипированные линии жизни `«boundary»`, `«control»`, `«entity»` соответствуют конкретным C++-классам (`FlightDialog`, `PreflightDialog`, `ReportsDialog`, `FlightService`, `AdmissionService`, `MaintenanceEngine`, `PreflightService`, `ReportService`, `PdfExporter`, `DatabaseManager`).
 
 4. **Автоматизированная верификация моделей тестами (`CTest`):**
-   Каждый ключевой сценарий, переход автомата и ветка `alt`/`opt` верифицируется набором из 12 модульных и интеграционных тестов [`project/UAVLog/tests/test_uavlog_core.cpp`](../../project/UAVLog/tests/test_uavlog_core.cpp) (`test01`…`test12`), подтверждающим фактическое соответствие реализованного ПО построенным UML-моделям.
+   Каждый ключевой сценарий, переход автомата и ветка `alt`/`opt` верифицируется набором модульных и интеграционных тестов [`project/UAVLog/tests/test_uavlog_core.cpp`](../../project/UAVLog/tests/test_uavlog_core.cpp) (`test01`…`test10` + `initTestCase` / `cleanupTestCase`, итого 12/12 `PASS` в `QtTest`/`CTest`), подтверждающим фактическое соответствие реализованного ПО построенным UML-моделям.
 
 ### Последствия
 
