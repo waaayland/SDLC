@@ -36,7 +36,7 @@
 | `project/PasswordGenerator/` | Учебный проект лабораторной работы №2 (MVC генератор паролей) |
 | `srs/` | Спецификация требований ([SRS v0.3](srs/srs-uavlog.md)), модели SysML v2 (`srs/models/`) и прототип GUI (`srs/images/`) |
 | `sdd/` | Описание проектирования ([SDD v0.4](sdd/sdd-uavlog.md)) и проектные диаграммы (`sdd/images/`) |
-| `docs/uml/` | Модель динамического поведения UML 2.5: [глоссарий](docs/uml/glossary.md), [доп. спецификации](docs/uml/supplementary-specifications.md), [спецификация актёров и 16 прецедентов](docs/uml/use-case-specifications.md), исходники `models/*.puml`, монохромный рендерер `render_stp_diagrams.py` и PNG (`images/`) |
+| `docs/uml/` | Модель динамического поведения UML 2.5: [глоссарий](docs/uml/glossary.md), [доп. спецификации](docs/uml/supplementary-specifications.md), [спецификация 7 актёров и 17 прецедентов](docs/uml/use-case-specifications.md), исходники `models/*.puml`, монохромный рендерер `render_stp_diagrams.py` и PNG (`images/`) |
 | `docs/decisions/` | Протоколы архитектурных решений [ADR-0001…0007](docs/decisions/) (формат MADR) |
 | `docs/planning/` | Приоритизация, итерационные планы (v1–v4) и переписка с Заказчиком |
 

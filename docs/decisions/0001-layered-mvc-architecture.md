@@ -73,5 +73,5 @@ informed: Внук О. М. (Преподаватель)
 
 * Адресуемые требования SRS: `REQ-MAINT-001`, `REQ-SEC-002`, `REQ-PORT-001`, `CON-2`.
 * Затронутые представления SDD: `DV-02` (Композиция и зависимости), `DV-03` (Логическое представление), `DV-05` (Диаграммы последовательности UML 2.5), `DV-06` (Диаграмма активности и паттерны проектирования).
-* Связанные артефакты ЛР №5: [`ADR-0007`](0007-uml-dynamic-behavior-modeling.md), дорожки ответственности [`docs/uml/models/02-activity-flight-registration.puml`](../uml/models/02-activity-flight-registration.puml) и реализация `project/UAVLog/CMakeLists.txt` (`uavlog_core`, `uavlog_infra`, `uavlog_services`, `uavlog`).
+* Связанные артефакты ЛР №5: [`ADR-0007`](0007-uml-dynamic-behavior-modeling.md), диаграмма активности [`docs/uml/models/02-activity-flight-registration.puml`](../uml/models/02-activity-flight-registration.puml), диаграммы последовательности [`04`](../uml/models/04-sequence-flight-registration.puml) / [`05`](../uml/models/05-sequence-preflight-and-readiness.puml) и реализация `project/UAVLog/CMakeLists.txt` (`uavlog_core`, `uavlog_infra`, `uavlog_services`, `uavlog`).
 * Условие пересмотра: переход на клиент-серверную архитектуру в версии 2.0 (вынесение сервисного слоя на сервер).
