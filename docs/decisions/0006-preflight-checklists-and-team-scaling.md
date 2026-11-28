@@ -70,5 +70,6 @@ informed: Команда разработки (Lead + Junior)
 ## Дополнительная информация
 
 * Адресуемые требования SRS: `REQ-FUNC-004-2`, `REQ-FUNC-006-3`, `REQ-FUNC-017`, `CON-6`, `REQ-MAINT-001`.
-* Затронутые представления SDD: `DV-02`, `DV-03`, `DV-04` (ER-схема v0.3), `DV-05`, `DV-06`.
+* Затронутые представления SDD: `DV-02`, `DV-03`, `DV-04` (ER-схема v0.3), `DV-05`, `DV-06`, `DV-08`.
+* Связанные артефакты ЛР №5: [`ADR-0007`](0007-uml-dynamic-behavior-modeling.md), [`docs/uml/models/05-sequence-preflight-and-readiness.puml`](../uml/models/05-sequence-preflight-and-readiness.puml), [`UC-04` / `UC-09`](../uml/use-case-specifications.md), реализация `PreflightService` и `PreflightDialog`.
 * Переписка и расчёт плана: [`docs/planning/correspondence-round2.md`](../planning/correspondence-round2.md), [`docs/planning/prioritization-and-plan.md`](../planning/prioritization-and-plan.md).

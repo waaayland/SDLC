@@ -1,0 +1,82 @@
+@startuml
+' Диаграмма последовательности: Регистрация полёта и 5-факторный контроль допуска (UML 2.5, стиль СТП 01-2024)
+mainframe sd Регистрация полёта и 5-факторный контроль допуска (UAVLog 1.0)
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 11
+
+actor "Оператор БЛА" as Oper
+participant "<<boundary>>\n:FlightDialog" as UI
+participant "<<control>>\n:FlightService" as FS
+participant "<<control>>\n:AdmissionService" as AS
+participant "<<entity>>\n:AdmissionResult" as Res
+participant "<<control>>\n:MaintenanceEngine" as ME
+participant "<<entity>>\n:DatabaseManager\n(SQLite WAL)" as DB
+
+Oper -> UI : выбрать(борт, оператор, АКБ, дата, время)
+activate UI
+
+UI -> UI : validateDuration(взлёт, посадка) (0 < dur <= 720 мин)
+UI -> FS : evaluateAdmission(dto)
+activate FS
+note right of FS : {<= 200 мс}
+
+FS -> DB : fetchAdmissionContext(uavId, opId, batId, date)
+activate DB
+DB --> FS : состояние, ТО, допуск, АКБ, осмотр F-15
+deactivate DB
+
+FS -> AS : evaluate(ctx)
+activate AS
+create Res
+AS -> Res : <<create>> AdmissionResult(5 факторов, reasons)
+AS --> FS : result : AdmissionResult
+deactivate AS
+
+FS --> UI : result : AdmissionResult
+deactivate FS
+
+alt [result.allowed == true]
+  UI -> UI : индикатор «ДОПУЩЕН»; активировать «Сохранить»
+  Oper -> UI : нажать «Сохранить» (Enter)
+  UI -> FS : registerFlight(dto, actor)
+  activate FS
+  note right of FS : {<= 1000 мс}
+  FS -> FS : RbacGuard::requirePermission(RegisterFlight)
+  FS -> DB : beginImmediate()
+  activate DB
+  FS -> DB : INSERT INTO flights(...)
+  DB --> FS : flightId
+  FS -> ME : calculateRemainders(uav, rules, recs)
+  activate ME
+  ME --> FS : remainders[]
+  deactivate ME
+  opt [есть вид ТО с остатком <= 0]
+    FS -> DB : UPDATE uavs SET state = 'DueMaintenance'
+  end
+  FS -> DB : INSERT INTO audit_log(actor, "FLIGHT_CREATE")
+  alt [все запросы успешны]
+    FS -> DB : commit()
+    DB --> FS : ok
+    FS --> UI : true (flightId)
+    UI --> Oper : подтверждение; обновить таблицу и предупреждения
+  else [ошибка БД / сбой записи]
+    ref over FS, DB
+      Handle DB Error / Rollback (REQ-REL-001):
+      rollback(), запись в uavlog.log
+    end ref
+    FS --> UI : false (errorMessage)
+    UI --> Oper : сообщение об ошибке (целостность сохранена)
+  end
+  deactivate DB
+  deactivate FS
+else [result.allowed == false]
+  UI -> UI : вывести result.reasons[]; отключить «Сохранить»
+  UI --> Oper : отказ в допуске с перечнем причин
+end
+
+destroy Res
+deactivate UI
+@enduml

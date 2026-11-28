@@ -1,0 +1,74 @@
+@startuml
+' Диаграмма последовательности: Предполётный осмотр (F-15) и Акт готовности парка (UML 2.5, стиль СТП 01-2024)
+mainframe sd Предполётный осмотр (F-15) и формирование Акта готовности парка
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 11
+
+actor "Техник /\nОператор" as User
+participant "<<boundary>>\n:PreflightDialog" as UI
+participant "<<control>>\n:PreflightService" as PS
+participant "<<control>>\n:UavStateMachine" as SM
+participant "<<entity>>\n:DatabaseManager\n(SQLite WAL)" as DB
+participant "<<control>>\n:ReportService\n(PdfExporter)" as RS
+actor "Принтер\nWindows" as Printer
+
+User -> UI : открыть осмотр(uavId, date)
+activate UI
+UI -> PS : loadActiveTemplateForUav(uavId)
+activate PS
+PS -> DB : SELECT checklist_templates, checklist_items
+activate DB
+DB --> PS : template + items[] (признак критичности)
+deactivate DB
+PS --> UI : ChecklistTemplate
+deactivate PS
+
+UI --> User : отобразить контрольную карту
+User -> UI : отметить пункты и нажать «Сохранить осмотр»
+
+UI -> PS : saveInspection(uavId, tplId, date, results[], actor)
+activate PS
+PS -> DB : beginImmediate()
+activate DB
+PS -> DB : INSERT preflight_checks, preflight_results
+
+alt [нет критичных замечаний (passed == true)]
+  PS -> DB : INSERT audit_log("PREFLIGHT_PASS")
+  PS -> DB : commit()
+  PS --> UI : ok (passed = true)
+  UI --> User : осмотр пройден (5-й фактор допуска активен)
+else [выявлено критичное замечание (passed == false)]
+  PS -> SM : transition(curState, CriticalFaultReported)
+  activate SM
+  SM --> PS : UavStatus::Faulty
+  deactivate SM
+  PS -> DB : UPDATE uavs SET state='Faulty'; INSERT faults
+  PS -> DB : INSERT audit_log("PREFLIGHT_FAIL_FAULTY")
+  PS -> DB : commit()
+  PS --> UI : ok (passed = false, Faulty)
+  UI --> User : допуск заблокирован, борт переведён в «Неисправен»
+end
+deactivate DB
+deactivate PS
+
+opt [формирование и печать Акта готовности парка (Администратор / Наблюдатель)]
+  User -> RS : generateReport(FleetReadinessAct, date)
+  activate RS
+  note right of RS : {<= 15 с} (REQ-PERF-003)
+  RS -> PS : buildFleetReadinessRows(date)
+  activate PS
+  PS -> DB : SELECT uavs + preflight_checks(date)
+  DB --> PS : readinessRows[]
+  PS --> RS : readinessRows[]
+  deactivate PS
+  RS -> RS : рендер HTML/CSS -> QTextDocument -> PDF A4
+  RS ->> Printer : printHtmlA4() (опционально)
+  RS --> User : файл PDF A4 сохранён / отправлен на печать
+  deactivate RS
+end
+
+deactivate UI
+@enduml

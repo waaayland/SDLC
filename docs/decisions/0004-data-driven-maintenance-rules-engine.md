@@ -64,3 +64,4 @@ informed: Внук О. М. (Преподаватель)
 
 * Адресуемые требования SRS: `REQ-FUNC-002`, `REQ-FUNC-007`, `REQ-FUNC-008`, `REQ-FUNC-009-2`, `REQ-FUNC-010`, `REQ-FUNC-016`, `REQ-REUSE-001`, `REQ-PERF-001`.
 * Затронутые представления SDD: `DV-03` (Логическое), `DV-05` (Взаимодействие), `DV-06` (Алгоритмы и динамика состояний).
+* Связанные артефакты ЛР №5: [`ADR-0007`](0007-uml-dynamic-behavior-modeling.md), [`docs/uml/models/03-state-uav-lifecycle.puml`](../uml/models/03-state-uav-lifecycle.puml), [`docs/uml/models/04-sequence-flight-registration.puml`](../uml/models/04-sequence-flight-registration.puml), реализация `src/core/MaintenanceEngine.cpp` и `src/core/UavStateMachine.cpp`.

@@ -1,0 +1,61 @@
+@startuml
+' Диаграмма состояний жизненного цикла БЛА (UML 2.5, стиль СТП 01-2024)
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 11
+
+[*] --> Operational : Регистрация борта в реестре\n/ state = Serviceable; audit_log()
+
+state "В эксплуатации (Operational)" as Operational {
+  [*] --> Serviceable
+
+  state "Исправен (Serviceable)" as Serviceable {
+    Serviceable : entry / разрешить допуск (uavOk = true)
+    Serviceable : do / учёт полётов, осмотров и контроль ТО
+    Serviceable : exit / зафиксировать смену статуса в audit_log
+  }
+
+  state "Требуется ТО (DueMaintenance)" as DueMaintenance {
+    DueMaintenance : entry / заблокировать вылет (maintOk = false)
+    DueMaintenance : do / вывод критичного предупреждения
+    DueMaintenance : exit / обновить статус в реестре
+  }
+
+  state "На ТО (InMaintenance)" as InMaintenance {
+    InMaintenance : entry / заблокировать вылет (uavOk = false)
+    InMaintenance : do / выполнение регламентных работ
+    InMaintenance : exit / обнулить наработку по виду ТО
+  }
+
+  state "Неисправен (Faulty)" as Faulty {
+    Faulty : entry / заблокировать вылет (uavOk = false)
+    Faulty : do / ожидание ремонта и отметки устранения
+    Faulty : exit / проверить отсутствие открытых отказов
+  }
+
+  Serviceable --> DueMaintenance : Порог ТО достигнут\n[remHours <= 0 || remDays <= 0]\n/ создать предупреждение
+  Serviceable --> InMaintenance : Начать плановое ТО\n[роль in {Техник, Админ}]
+  DueMaintenance --> InMaintenance : Начать просроченное ТО\n[роль in {Техник, Админ}]
+
+  InMaintenance --> Serviceable : ТО выполнено\n[нет крит. отказов && нет просроч. ТО]\n/ recalculateUav()
+  InMaintenance --> DueMaintenance : ТО выполнено\n[остались иные просроч. ТО]\n/ recalculateUav()
+  InMaintenance --> Faulty : Выявлен крит. отказ\n/ создать запись в faults
+
+  Serviceable --> Faulty : Критичная неисправность\nили крит. замечание F-15\n/ блокировать допуск
+  DueMaintenance --> Faulty : Критичная неисправность\n/ блокировать допуск
+
+  Faulty --> Serviceable : Все крит. отказы устранены\n[указаны работы && ТО в норме]\n/ recalculateUav()
+  Faulty --> DueMaintenance : Все крит. отказы устранены\n[есть просроченное ТО]\n/ обновить предупреждения
+}
+
+Operational --> Retired : Списание борта\n[роль = Администратор && подтверждение]\n/ архив R/O; открепить АКБ; audit_log()
+
+state "Списан (Retired)" as Retired {
+  Retired : entry / запретить полёты, ТО и правки (R/O)
+  Retired : do / хранение полной истории в архиве
+}
+
+Retired --> [*]
+@enduml
